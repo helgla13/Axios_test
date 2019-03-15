@@ -1,0 +1,257 @@
+<html>
+<head>
+    <title>test_axios</title>
+    <link crossorigin="anonymous" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+          integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" rel="stylesheet">
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="form-group row">
+        <div class="col-xs-3">
+            <label for="msg">Search:</label>
+            <input type="text" class="form-control" id="msg">
+        </div>
+        <div class="col-xs-3">
+            <br>
+            <input class="btn" type="submit" value="get all data" onclick="send(1)">
+            <input class="btn" type="submit" value="getbyfilter" onclick="getbyFilter()">
+        </div>
+    </div>
+
+
+    <br>
+    <br>
+
+    <h5>Apdate record</h5>
+    <div class="form-group row">
+        <div class="col-xs-2">
+            <label for="usr_id">ID:</label>
+            <input type="text" class="form-control" id="usr_id">
+        </div>
+        <div class="col-xs-3">
+            <label for="usr_name">Name:</label>
+            <input type="text" class="form-control" id="usr_name">
+        </div>
+        <div class="col-xs-3">
+            <label for="usr_email">Email:</label>
+            <input type="email" class="form-control" id="usr_email">
+        </div>
+        <div class="col-xs-3">
+            <label for="usr_funds">Funds:</label>
+            <input type="text" class="form-control" id="usr_funds">
+        </div>
+        <div class="col-xs-3">
+            <label for="usr_city">City:</label>
+            <input type="text" class="form-control" id="usr_city">
+        </div>
+        <div class="col-xs-3">
+            <label for="usr_phone">Phone:</label>
+            <input type="phone" class="form-control" id="usr_phone">
+        </div>
+        <div class="col-xs-3">
+            <br>
+            <input class="btn" type="submit" value="save" onclick="send_new()">
+        </div>
+    </div>
+</div>
+
+
+<p id ="out"></p>
+<div id="tbl">
+</div>
+
+Pages:
+<div id="pagination">
+</div>
+
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <script>
+
+        var input_data;
+        var filtered_arr = [];
+        var whole_arr = [];
+
+        // Получение нефильтрованных данных с нужным идентификатором страницы
+
+        function send(page) {
+            var table = '';
+            input_data = document.getElementById('msg').value;
+
+            axios.get('http://localhost:8080/', {
+            })
+                .then(function (response) {
+                    whole_arr = response.data.data;
+                    render(false,page);
+                    pagination_buttons_render(response.data.data,response.data.data.length,10,false)
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+        }
+
+
+        // Выборка данных по фильтру
+
+        function filterbyInput(item) {
+            if (isNaN(input_data)) {
+                if (item.name.includes(input_data) || item.email.includes(input_data) || item.city.includes(input_data)) {
+                    return true;
+
+                }
+                else {
+                    return false;
+                }
+
+
+            }
+            //-----------------if input is numeric
+            else
+            {
+                //if input is numeric smaller than 0
+
+                if (input_data<0) {
+                    if (item.funds<=Math.abs(input_data)) {
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+
+                }
+
+                else
+                //if input is numeric greater than 0
+                {
+                    if (item.funds>=Math.abs(input_data)) {
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+
+                }
+            }
+
+
+        }
+
+        //Отрисовка табличной части
+
+        function render(isFiltered,page) {
+            var table='';
+            var limit=10;
+            var arr=[];
+            if (isFiltered===true) {
+                arr=filtered_arr.slice();
+            }
+            else {
+                arr = whole_arr.slice();
+            }
+
+
+            table=table+'<table class="table table-striped" id="records_table">\n' +
+                '    <thead>\n' +
+                '    <tr>\n' +
+                '        <th scope="col">id</th>\n' +
+                '        <th scope="col">Name</th>\n' +
+                '        <th scope="col">email</th>\n' +
+                '        <th scope="col">funds</th>\n' +
+                '        <th scope="col">city</th>\n' +
+                '        <th scope="col">phone</th>\n' +
+                '    </tr>\n' +
+                '    </thead>\n' +
+                '    <tbody>';
+
+            var offset=(page-1)*limit;
+            for (var i=offset;i<offset+limit && i<arr.length;i++) {
+                table=table+'<tr><th scope="row">'+arr[i].id
+                    +'</th><td>'+arr[i].name+'</td>'
+                    +'</th><td>'+arr[i].email+'</td>'
+                    +'</th><td>'+arr[i].funds+'</td>'
+                    +'</th><td>'+arr[i].city+'</td>'
+                    +'</th><td>'+arr[i].phone+'</td></tr>'
+            }
+
+            table=table+'</tbody></table>';
+            $('#tbl').html(table);
+
+        }
+
+        // Получение и отрисовка данных с сервера с применением фильтра из поля ввода
+
+        function getbyFilter() {
+            var table='';
+            input_data= document.getElementById('msg').value;
+
+            axios.get('http://localhost:8080/', {
+            })
+                .then(function (response) {
+                    var fileredData=response.data.data.filter(filterbyInput);
+                    filtered_arr=fileredData;
+                    render(true,1);
+                    pagination_buttons_render(fileredData,fileredData.length,10,true)
+
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+        }
+
+
+        function pagination_buttons_render(data,total_cnt,limit,isfiltered) {
+            var pagination_html='';
+            pages_cnt=Math.ceil(total_cnt/limit);
+            for (var i=1;i<=pages_cnt;i++)
+            {
+                pagination_html = pagination_html + '<input onclick="render('+isfiltered+',' + i + ')" type="submit" value="' + i + '">'
+            }
+            $('#pagination').html(pagination_html);
+
+        }
+
+        // Изменение данных с указанным ID
+
+        var send_new = function () {
+            var input_id = document.getElementById('usr_id').value;
+            var input_name = document.getElementById('usr_name').value;
+            var input_email = document.getElementById('usr_email').value;
+            var input_funds = document.getElementById('usr_funds').value;
+            var input_city = document.getElementById('usr_city').value;
+            var input_phone = document.getElementById('usr_phone').value;
+            var table='';
+
+            axios.put('http://localhost:8080/update/'+input_id, {
+
+
+                name: input_name,
+                email: input_email,
+                funds: input_funds,
+                city: input_city,
+                phone: input_phone
+            })
+                .then(function(response){
+                    console.log('saved successfully');
+                    alert ("Saved succesfully. Please refresh data");
+                })
+
+                .catch(function (error) {
+                    console.log(error);
+                });
+
+        }
+
+
+
+
+    </script>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.js"></script>
+<script crossorigin="anonymous" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+        src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+</body>
+</html>
